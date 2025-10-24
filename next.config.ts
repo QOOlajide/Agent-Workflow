@@ -2,7 +2,8 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /* config options here */
-  output: 'standalone', // Enables optimized Docker builds
+  // Note: 'output: standalone' is for Docker/containerized deployments only
+  // AWS Amplify doesn't need this setting
 };
 
 export default nextConfig;
