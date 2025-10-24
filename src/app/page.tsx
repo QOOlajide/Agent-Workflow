@@ -54,6 +54,54 @@ import '@xyflow/react/dist/style.css';
 // HOW: Imported and added to nodeTypes mapping below
 import { FirecrawlNode } from '@/components/nodes/FirecrawlNode';
 import { OpenAINode } from '@/components/nodes/OpenAINode';
+
+// ============================================================
+// TYPESCRIPT INTERFACES FOR NODE DATA
+// ============================================================
+
+/**
+ * Connected Node Data structure
+ * Represents data passed from one node to another via connections
+ */
+interface ConnectedNodeData {
+  type: string;
+  content: string;
+  label?: string;
+}
+
+/**
+ * Firecrawl Node Data structure
+ * Contains URL input and scraped markdown output
+ */
+interface FirecrawlNodeData {
+  url: string;
+  markdown: string;
+}
+
+/**
+ * OpenAI Node Data structure
+ * Contains prompt, model selection, response, and connected data
+ */
+interface OpenAINodeData {
+  prompt: string;
+  model: string;
+  response: string;
+  connectedData: ConnectedNodeData[];
+}
+
+/**
+ * Default Node Data structure
+ * For standard React Flow nodes or unknown types
+ */
+interface DefaultNodeData {
+  label?: string;
+  [key: string]: unknown;
+}
+
+/**
+ * Union type for all possible node data types
+ */
+type NodeData = FirecrawlNodeData | OpenAINodeData | DefaultNodeData;
  
 /**
  * INITIAL NODES CONFIGURATION
@@ -259,27 +307,30 @@ export default function Home() {
       let connectedLabel: string | undefined;
       
       if (sourceNode.type === "firecrawl") {
-        connectedContent = (sourceNode.data as any).markdown || "";
-        connectedLabel = (sourceNode.data as any).url || undefined;
+        const firecrawlData = sourceNode.data as unknown as FirecrawlNodeData;
+        connectedContent = firecrawlData.markdown || "";
+        connectedLabel = firecrawlData.url || undefined;
       } else if (sourceNode.type === "openai") {
-        connectedContent = (sourceNode.data as any).response || "";
-        connectedLabel = (sourceNode.data as any).model ? `Model: ${(sourceNode.data as any).model}` : undefined;
+        const openaiData = sourceNode.data as unknown as OpenAINodeData;
+        connectedContent = openaiData.response || "";
+        connectedLabel = openaiData.model ? `Model: ${openaiData.model}` : undefined;
       } else {
-        connectedContent = (sourceNode.data as any).label || "";
+        const defaultData = sourceNode.data as unknown as DefaultNodeData;
+        connectedContent = defaultData.label || "";
         connectedLabel = sourceNode.id;
       }
       
       if (!connectedContent.trim()) return;
       
-      const newConnectedData = {
+      const newConnectedData: ConnectedNodeData = {
         type: sourceNode.type || "unknown",
         content: connectedContent,
         label: connectedLabel,
       };
       
-      const targetData = (targetNode.data as any).connectedData || [];
+      const targetData = (targetNode.data as unknown as OpenAINodeData).connectedData || [];
       const needsUpdate = !Array.isArray(targetData) || !targetData.some(
-        (item: any) => 
+        (item: ConnectedNodeData) => 
           item.type === newConnectedData.type && 
           item.label === newConnectedData.label &&
           item.content === newConnectedData.content
@@ -289,9 +340,9 @@ export default function Home() {
         setNodes((nds) =>
           nds.map((node) => {
             if (node.id === edge.target) {
-              const existing = (node.data as any).connectedData || [];
+              const existing = (node.data as unknown as OpenAINodeData).connectedData || [];
               const filtered = Array.isArray(existing) 
-                ? existing.filter((item: any) => !(item.type === newConnectedData.type && item.label === newConnectedData.label))
+                ? existing.filter((item: ConnectedNodeData) => !(item.type === newConnectedData.type && item.label === newConnectedData.label))
                 : [];
               
               return {
@@ -355,23 +406,26 @@ export default function Home() {
         // WHY: Firecrawl nodes have markdown and url fields
         // HOW: Extract markdown as content, url as label
         if (sourceNode.type === "firecrawl") {
-          connectedContent = (sourceNode.data as any).markdown || "";
-          connectedLabel = (sourceNode.data as any).url || undefined;
+          const firecrawlData = sourceNode.data as unknown as FirecrawlNodeData;
+          connectedContent = firecrawlData.markdown || "";
+          connectedLabel = firecrawlData.url || undefined;
         }
         
         // WHAT: Handle OpenAI node data
         // WHY: OpenAI nodes have response field (AI-generated text)
         // HOW: Extract response as content, model as label
         else if (sourceNode.type === "openai") {
-          connectedContent = (sourceNode.data as any).response || "";
-          connectedLabel = (sourceNode.data as any).model ? `Model: ${(sourceNode.data as any).model}` : undefined;
+          const openaiData = sourceNode.data as unknown as OpenAINodeData;
+          connectedContent = openaiData.response || "";
+          connectedLabel = openaiData.model ? `Model: ${openaiData.model}` : undefined;
         }
         
         // WHAT: Handle default nodes or unknown types
         // WHY: Default nodes just have a label field
         // HOW: Use label as content if available
         else {
-          connectedContent = (sourceNode.data as any).label || "";
+          const defaultData = sourceNode.data as unknown as DefaultNodeData;
+          connectedContent = defaultData.label || "";
           connectedLabel = sourceNode.id;
         }
         
@@ -406,13 +460,13 @@ export default function Home() {
             // WHAT: Get existing connectedData or empty array
             // WHY: Target might already have data from other connections
             // HOW: Access data.connectedData with fallback to empty array
-            const existingConnectedData = (node.data as any).connectedData || [];
+            const existingConnectedData = (node.data as unknown as OpenAINodeData).connectedData || [];
             
             // WHAT: Check if this source is already connected
             // WHY: Prevent duplicate entries if edge already exists
             // HOW: Look for existing entry with same source type and label
             const alreadyConnected = Array.isArray(existingConnectedData) && existingConnectedData.some(
-              (item: any) =>
+              (item: ConnectedNodeData) =>
                 item.type === connectedData.type &&
                 item.label === connectedData.label
             );
