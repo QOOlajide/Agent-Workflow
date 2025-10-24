@@ -73,7 +73,7 @@ const envSchema = z.object({
    * SOURCE: .env.local file
    * VALIDATION: Must be a string (should be a URL but not strictly validated)
    */
-  NEXT_PUBLIC_APP_URL: z.string(),
+  NEXT_PUBLIC_APP_URL: z.string().default("https://localhost:3000"),
   
   /**
    * FIRECRAWL_API_KEY - API key for Firecrawl service
