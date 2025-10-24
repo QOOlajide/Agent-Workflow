@@ -97,11 +97,6 @@ interface DefaultNodeData {
   label?: string;
   [key: string]: unknown;
 }
-
-/**
- * Union type for all possible node data types
- */
-type NodeData = FirecrawlNodeData | OpenAINodeData | DefaultNodeData;
  
 /**
  * INITIAL NODES CONFIGURATION
