@@ -52,6 +52,12 @@ import { Globe, Copy, CheckCircle2, Loader2, FileText } from "lucide-react";
 // HOW: Call toast({ title, description, variant }) to show notifications
 import { useToast } from "@/hooks/useToast";
 
+// Import Zustand store for data flow management
+// WHAT: Global state store for managing data transfer between nodes
+// WHY: Following cursor rules to use Zustand for state management
+// HOW: Use setNodeOutput to store scraped data for connected nodes
+import { useFlowStore } from "@/store/flow-store";
+
 /**
  * TYPE DEFINITION: FirecrawlNodeData
  * 
@@ -133,6 +139,11 @@ function FirecrawlNodeComponent({ data, id }: FirecrawlNodeProps) {
   // WHY: Shows "Copied!" feedback when user copies markdown
   // HOW: Set to true after copy, reset after delay
   const [copied, setCopied] = useState(false);
+
+  // WHAT: Zustand store action for setting node output
+  // WHY: Store scraped data so connected nodes can access it
+  // HOW: Call setNodeOutput with node data after successful scrape
+  const setNodeOutput = useFlowStore((state) => state.setNodeOutput);
 
   // ============================================================
   // SCRAPING HANDLER
@@ -252,6 +263,25 @@ function FirecrawlNodeComponent({ data, id }: FirecrawlNodeProps) {
       setMarkdown(scrapedMarkdown);
       setMetadata(scrapedMetadata);
 
+      // ============================================================
+      // ZUSTAND: Store output data for connected nodes
+      // ============================================================
+      
+      // WHAT: Store scraped data in Zustand store
+      // WHY: Connected nodes (like OpenAI) can access this data
+      // HOW: Call setNodeOutput with structured data
+      setNodeOutput(id, {
+        nodeId: id,
+        nodeType: 'firecrawl',
+        content: scrapedMarkdown,
+        label: scrapedMetadata?.title || url,
+        metadata: {
+          url: url,
+          statusCode: scrapedMetadata?.statusCode,
+          timestamp: Date.now(),
+        },
+      });
+
       // WHAT: Show success notification
       // WHY: Confirms to user that scraping worked
       // HOW: Toast with title from metadata (if available) or URL
@@ -291,7 +321,7 @@ function FirecrawlNodeComponent({ data, id }: FirecrawlNodeProps) {
       // HOW: Set loading back to false (always executes, even if error)
       setLoading(false);
     }
-  }, [url, toast]); // Dependencies: recreate function only if url or toast changes
+  }, [url, toast, id, setNodeOutput]); // Dependencies: recreate function only if these change
 
   // ============================================================
   // RENDER: Component JSX

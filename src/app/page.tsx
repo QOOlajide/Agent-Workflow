@@ -20,9 +20,8 @@
 //   - useState: Manages nodes and edges state (the workflow data)
 //   - useCallback: Prevents function recreation on every render (performance)
 //   - useMemo: Caches expensive computations (nodeTypes object)
-//   - useEffect: Syncs data between connected nodes when data changes
 // HOW: These work together to create a performant, interactive canvas
-import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 
 // Import React Flow library and components
 // WHAT: React Flow provides the interactive node-based canvas
@@ -55,48 +54,17 @@ import '@xyflow/react/dist/style.css';
 import { FirecrawlNode } from '@/components/nodes/FirecrawlNode';
 import { OpenAINode } from '@/components/nodes/OpenAINode';
 
+// Import Zustand store for data flow management
+// WHAT: Global state store for managing data transfer between nodes
+// WHY: Following cursor rules to use Zustand for state management
+// HOW: Use addConnection and removeConnection to track node relationships
+import { useFlowStore } from '@/store/flow-store';
+
 // ============================================================
 // TYPESCRIPT INTERFACES FOR NODE DATA
 // ============================================================
-
-/**
- * Connected Node Data structure
- * Represents data passed from one node to another via connections
- */
-interface ConnectedNodeData {
-  type: string;
-  content: string;
-  label?: string;
-}
-
-/**
- * Firecrawl Node Data structure
- * Contains URL input and scraped markdown output
- */
-interface FirecrawlNodeData {
-  url: string;
-  markdown: string;
-}
-
-/**
- * OpenAI Node Data structure
- * Contains prompt, model selection, response, and connected data
- */
-interface OpenAINodeData {
-  prompt: string;
-  model: string;
-  response: string;
-  connectedData: ConnectedNodeData[];
-}
-
-/**
- * Default Node Data structure
- * For standard React Flow nodes or unknown types
- */
-interface DefaultNodeData {
-  label?: string;
-  [key: string]: unknown;
-}
+// NOTE: Node data structures are now managed in the Zustand store
+// See src/store/flow-store.ts for NodeOutputData interface
  
 /**
  * INITIAL NODES CONFIGURATION
@@ -186,6 +154,17 @@ export default function Home() {
   const [edges, setEdges] = useState<Edge[]>(initialEdges);
 
   // ============================================================
+  // ZUSTAND STORE INTEGRATION
+  // ============================================================
+  
+  // WHAT: Get Zustand store actions for managing connections
+  // WHY: Track connections in global state for data flow
+  // HOW: Destructure actions from useFlowStore
+  const addConnection = useFlowStore((state) => state.addConnection);
+  const removeConnection = useFlowStore((state) => state.removeConnection);
+  const clearNode = useFlowStore((state) => state.clearNode);
+
+  // ============================================================
   // CUSTOM NODE TYPES REGISTRATION
   // ============================================================
   
@@ -219,7 +198,7 @@ export default function Home() {
   // ============================================================
   
   /**
-   * NODES CHANGE HANDLER
+   * NODES CHANGE HANDLER WITH ZUSTAND CLEANUP
    * 
    * WHAT: Callback function that handles all node updates
    * WHY: React Flow fires events when nodes change (drag, select, delete, etc.)
@@ -228,7 +207,7 @@ export default function Home() {
    * WRAPPED IN useCallback:
    * - WHAT: Memoizes the function to prevent recreation
    * - WHY: React Flow checks if handler changed; recreation causes re-renders
-   * - HOW: Empty dependency array [] = function never changes
+   * - HOW: Dependencies array includes clearNode for cleanup
    * 
    * CHANGE TYPES:
    * - position: Node was dragged to new position
@@ -237,18 +216,29 @@ export default function Home() {
    * - dimensions: Node size changed
    * - add: New node was added
    * 
-   * applyNodeChanges UTILITY:
-   * - WHAT: React Flow utility that applies changes immutably
-   * - WHY: Ensures React detects state change and re-renders
-   * - HOW: Creates new array with changes applied (doesn't mutate original)
+   * ENHANCED: Also cleans up Zustand store when nodes are deleted
    */
   const onNodesChange = useCallback(
-    (changes: NodeChange[]) => setNodes((nodesSnapshot) => applyNodeChanges(changes, nodesSnapshot)),
-    [], // No dependencies = function never recreates
+    (changes: NodeChange[]) => {
+      // WHAT: Check for node removal events
+      // WHY: Need to clean up Zustand store when nodes are deleted
+      // HOW: Filter for 'remove' type changes and call clearNode
+      changes.forEach((change) => {
+        if (change.type === 'remove') {
+          clearNode(change.id);
+        }
+      });
+      
+      // WHAT: Apply changes to nodes state
+      // WHY: Update React Flow visual state
+      // HOW: Use applyNodeChanges utility
+      setNodes((nodesSnapshot) => applyNodeChanges(changes, nodesSnapshot));
+    },
+    [clearNode], // Recreate if clearNode changes
   );
   
   /**
-   * EDGES CHANGE HANDLER
+   * EDGES CHANGE HANDLER WITH ZUSTAND SYNC
    * 
    * WHAT: Callback function that handles all edge (connection) updates
    * WHY: React Flow fires events when edges change (select, delete, etc.)
@@ -258,103 +248,53 @@ export default function Home() {
    * - select: Edge was selected
    * - remove: Edge was deleted
    * - add: New edge was created
+   * 
+   * ENHANCED: Also syncs deletions with Zustand store
    */
   const onEdgesChange = useCallback(
-    (changes: EdgeChange[]) => setEdges((edgesSnapshot) => applyEdgeChanges(changes, edgesSnapshot)),
-    [],
+    (changes: EdgeChange[]) => {
+      // WHAT: Check for edge removal events
+      // WHY: Need to update Zustand store when connections are deleted
+      // HOW: Filter for 'remove' type changes and call removeConnection
+      changes.forEach((change) => {
+        if (change.type === 'remove') {
+          const edge = edges.find((e) => e.id === change.id);
+          if (edge) {
+            removeConnection(edge.source, edge.target);
+          }
+        }
+      });
+      
+      // WHAT: Apply changes to edges state
+      // WHY: Update React Flow visual state
+      // HOW: Use applyEdgeChanges utility
+      setEdges((edgesSnapshot) => applyEdgeChanges(changes, edgesSnapshot));
+    },
+    [edges, removeConnection],
   );
   
   /**
-   * CONNECTION HANDLER WITH DATA FLOW
+   * CONNECTION HANDLER WITH ZUSTAND INTEGRATION
    * 
-   * WHAT: Callback function that handles new connections between nodes AND passes data
+   * WHAT: Callback function that handles new connections between nodes
    * WHY: React Flow calls this when user drags from one handle to another
-   * HOW: Receives connection params → adds edge → transfers data from source to target
+   * HOW: Receives connection params → adds edge → registers connection in Zustand
    * 
-   * CONNECTION FLOW:
+   * SIMPLIFIED FLOW (Zustand handles data transfer):
    * 1. User clicks and drags from a source handle (e.g., Firecrawl output)
    * 2. User drops on a target handle (e.g., OpenAI input)
    * 3. React Flow calls onConnect with connection details
    * 4. addEdge creates a new edge object with unique ID
    * 5. Edge is added to edges array → React Flow renders the connection
-   * 6. **NEW**: Read data from source node
-   * 7. **NEW**: Update target node's connectedData with source data
-   * 8. **NEW**: Target node UI updates to show connected data
+   * 6. addConnection registers the connection in Zustand store
+   * 7. Target node automatically gets source data via useFlowStore.getConnectedInputs()
    * 
-   * DATA FLOW EXAMPLE:
-   * - Firecrawl node (source) has markdown data
-   * - User connects Firecrawl to OpenAI (target)
-   * - This handler extracts markdown from Firecrawl
-   * - Packages it as ConnectedNodeData object
-   * - Adds it to OpenAI's connectedData array
-   * - OpenAI node shows "Connected Data" preview
-   * - When user generates, markdown is included as context
+   * BENEFITS:
+   * - No manual data extraction needed here
+   * - Nodes manage their own data via Zustand
+   * - Cleaner separation of concerns
+   * - Easier to maintain and extend
    */
-  // Sync connected data whenever nodes change
-  useEffect(() => {
-    edges.forEach((edge) => {
-      const sourceNode = nodes.find((n) => n.id === edge.source);
-      const targetNode = nodes.find((n) => n.id === edge.target);
-      
-      if (!sourceNode || !targetNode) return;
-      
-      let connectedContent = "";
-      let connectedLabel: string | undefined;
-      
-      if (sourceNode.type === "firecrawl") {
-        const firecrawlData = sourceNode.data as unknown as FirecrawlNodeData;
-        connectedContent = firecrawlData.markdown || "";
-        connectedLabel = firecrawlData.url || undefined;
-      } else if (sourceNode.type === "openai") {
-        const openaiData = sourceNode.data as unknown as OpenAINodeData;
-        connectedContent = openaiData.response || "";
-        connectedLabel = openaiData.model ? `Model: ${openaiData.model}` : undefined;
-      } else {
-        const defaultData = sourceNode.data as unknown as DefaultNodeData;
-        connectedContent = defaultData.label || "";
-        connectedLabel = sourceNode.id;
-      }
-      
-      if (!connectedContent.trim()) return;
-      
-      const newConnectedData: ConnectedNodeData = {
-        type: sourceNode.type || "unknown",
-        content: connectedContent,
-        label: connectedLabel,
-      };
-      
-      const targetData = (targetNode.data as unknown as OpenAINodeData).connectedData || [];
-      const needsUpdate = !Array.isArray(targetData) || !targetData.some(
-        (item: ConnectedNodeData) => 
-          item.type === newConnectedData.type && 
-          item.label === newConnectedData.label &&
-          item.content === newConnectedData.content
-      );
-      
-      if (needsUpdate) {
-        setNodes((nds) =>
-          nds.map((node) => {
-            if (node.id === edge.target) {
-              const existing = (node.data as unknown as OpenAINodeData).connectedData || [];
-              const filtered = Array.isArray(existing) 
-                ? existing.filter((item: ConnectedNodeData) => !(item.type === newConnectedData.type && item.label === newConnectedData.label))
-                : [];
-              
-              return {
-                ...node,
-                data: {
-                  ...node.data,
-                  connectedData: [...filtered, newConnectedData],
-                },
-              };
-            }
-            return node;
-          })
-        );
-      }
-    });
-  }, [nodes, edges]);
-
   const onConnect = useCallback(
     (params: Connection) => {
       // ============================================================
@@ -367,127 +307,27 @@ export default function Home() {
       setEdges((edgesSnapshot) => addEdge(params, edgesSnapshot));
       
       // ============================================================
-      // STEP 2: TRANSFER DATA FROM SOURCE TO TARGET
+      // STEP 2: REGISTER CONNECTION IN ZUSTAND STORE
       // ============================================================
       
-      // WHAT: Update nodes to pass data from source to target
-      // WHY: Target node needs access to source node's data
-      // HOW: Find source node → extract data → add to target node's connectedData
-      setNodes((nodesSnapshot) => {
-        // WHAT: Find the source node (where connection starts)
-        // WHY: Need to read data from this node
-        // HOW: Array.find() searches for node with matching ID
-        const sourceNode = nodesSnapshot.find((n) => n.id === params.source);
-        
-        // WHAT: Find the target node (where connection ends)
-        // WHY: Need to update this node's connectedData
-        // HOW: Array.find() searches for node with matching ID
-        const targetNode = nodesSnapshot.find((n) => n.id === params.target);
-        
-        // WHAT: Exit early if nodes not found
-        // WHY: Can't transfer data if nodes don't exist (defensive programming)
-        // HOW: Return unchanged nodes array if either node is missing
-        if (!sourceNode || !targetNode) {
-          return nodesSnapshot; // No changes
-        }
-        
-        // WHAT: Extract data from source node based on its type
-        // WHY: Different node types store data in different fields
-        // HOW: Switch on node type and extract relevant data
-        let connectedContent: string = "";
-        let connectedLabel: string | undefined;
-        
-        // WHAT: Handle Firecrawl node data
-        // WHY: Firecrawl nodes have markdown and url fields
-        // HOW: Extract markdown as content, url as label
-        if (sourceNode.type === "firecrawl") {
-          const firecrawlData = sourceNode.data as unknown as FirecrawlNodeData;
-          connectedContent = firecrawlData.markdown || "";
-          connectedLabel = firecrawlData.url || undefined;
-        }
-        
-        // WHAT: Handle OpenAI node data
-        // WHY: OpenAI nodes have response field (AI-generated text)
-        // HOW: Extract response as content, model as label
-        else if (sourceNode.type === "openai") {
-          const openaiData = sourceNode.data as unknown as OpenAINodeData;
-          connectedContent = openaiData.response || "";
-          connectedLabel = openaiData.model ? `Model: ${openaiData.model}` : undefined;
-        }
-        
-        // WHAT: Handle default nodes or unknown types
-        // WHY: Default nodes just have a label field
-        // HOW: Use label as content if available
-        else {
-          const defaultData = sourceNode.data as unknown as DefaultNodeData;
-          connectedContent = defaultData.label || "";
-          connectedLabel = sourceNode.id;
-        }
-        
-        // WHAT: Skip if no content to transfer
-        // WHY: No point adding empty data to target node
-        // HOW: Check if content is empty after trimming whitespace
-        if (!connectedContent.trim()) {
-          return nodesSnapshot; // No changes
-        }
-        
-        // WHAT: Create ConnectedNodeData object
-        // WHY: Package source data in structured format
-        // HOW: Object with type, content, and optional label
-        const connectedData = {
-          type: sourceNode.type || "unknown", // Node type (e.g., "firecrawl", "openai")
-          content: connectedContent,          // The actual data content
-          label: connectedLabel,              // Optional display label (URL, model, etc.)
-        };
-        
-        // ============================================================
-        // STEP 3: UPDATE TARGET NODE WITH CONNECTED DATA
-        // ============================================================
-        
-        // WHAT: Map through all nodes and update the target node
-        // WHY: Need to immutably update target node's connectedData
-        // HOW: map() creates new array, spread operator clones nodes
-        return nodesSnapshot.map((node) => {
-          // WHAT: Check if this is the target node
-          // WHY: Only update the target node, leave others unchanged
-          // HOW: Compare node ID with target ID from connection params
-          if (node.id === params.target) {
-            // WHAT: Get existing connectedData or empty array
-            // WHY: Target might already have data from other connections
-            // HOW: Access data.connectedData with fallback to empty array
-            const existingConnectedData = (node.data as unknown as OpenAINodeData).connectedData || [];
-            
-            // WHAT: Check if this source is already connected
-            // WHY: Prevent duplicate entries if edge already exists
-            // HOW: Look for existing entry with same source type and label
-            const alreadyConnected = Array.isArray(existingConnectedData) && existingConnectedData.some(
-              (item: ConnectedNodeData) =>
-                item.type === connectedData.type &&
-                item.label === connectedData.label
-            );
-            
-            // WHAT: Add new connected data if not already present
-            // WHY: Update target node with source data
-            // HOW: Spread operator creates new object with updated data
-            return {
-              ...node,                                    // Clone node
-              data: {
-                ...node.data,                            // Clone existing data
-                connectedData: alreadyConnected
-                  ? existingConnectedData                // No change if already connected
-                  : [...(Array.isArray(existingConnectedData) ? existingConnectedData : []), connectedData], // Add new connection
-              },
-            };
-          }
-          
-          // WHAT: Return unchanged node
-          // WHY: Only target node needs updating
-          // HOW: Return original node reference (no clone needed)
-          return node;
+      // WHAT: Register this connection in the Zustand store
+      // WHY: Store needs to track connections for data flow
+      // HOW: Call addConnection with source/target IDs and handles
+      if (params.source && params.target) {
+        addConnection({
+          sourceNodeId: params.source,
+          targetNodeId: params.target,
+          sourceHandle: params.sourceHandle || undefined,
+          targetHandle: params.targetHandle || undefined,
         });
-      });
+      }
+      
+      // NOTE: Data transfer happens automatically!
+      // - Source nodes call setNodeOutput when they produce data
+      // - Target nodes call getConnectedInputs to retrieve data
+      // - Zustand store handles the mapping via connections array
     },
-    [], // No dependencies = function never recreates
+    [addConnection], // Recreate only if addConnection changes
   );
 
   // ============================================================
