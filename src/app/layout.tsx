@@ -45,6 +45,15 @@ import "./globals.css";
 // HOW: Placed at root level (after children) to show on all pages
 import { Toaster } from "@/components/ui/toaster";
 
+// Import SpeedInsights component for performance monitoring
+// WHAT: Vercel Speed Insights component for real user monitoring (RUM)
+// WHY: 
+//   - Tracks Core Web Vitals and performance metrics in production
+//   - Helps identify performance issues affecting user experience
+//   - Provides insights via Vercel dashboard
+// HOW: Placed at root level (after children) to monitor entire app
+import { SpeedInsights } from "@vercel/speed-insights/next";
+
 /**
  * SANS-SERIF FONT CONFIGURATION
  * 
@@ -207,6 +216,30 @@ export default function RootLayout({
             - Multiple toasts stack vertically
         */}
         <Toaster />
+
+        {/* ========================================================
+            VERCEL SPEED INSIGHTS
+            ======================================================== */}
+        
+        {/* WHAT: Component for Vercel Speed Insights performance monitoring */}
+        {/* WHY: 
+            - Tracks Core Web Vitals (LCP, FID, CLS) in production
+            - Provides real user monitoring (RUM) data
+            - Helps identify performance bottlenecks
+            - Works only in production environments
+        */}
+        {/* HOW: 
+            - Injected at root level to monitor entire app
+            - Collects anonymized performance metrics
+            - Sends data to Vercel dashboard
+            - Zero performance impact with async data collection
+        */}
+        {/* USAGE: 
+            - Automatically enabled in production
+            - Disabled in development to avoid noise
+            - View data in Vercel project dashboard
+        */}
+        <SpeedInsights />
       </body>
     </html>
   );
