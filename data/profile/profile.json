@@ -1,0 +1,75 @@
+{
+  "summary": "Software engineering student with hands-on experience building full-stack web applications, REST APIs, and AI-powered tools. Passionate about distributed systems and developer tooling.",
+  "skills": [
+    "TypeScript",
+    "JavaScript",
+    "Python",
+    "React",
+    "Next.js",
+    "Node.js",
+    "PostgreSQL",
+    "Redis",
+    "Docker",
+    "Git",
+    "Tailwind CSS",
+    "REST APIs"
+  ],
+  "coursework": [
+    "Data Structures & Algorithms",
+    "Operating Systems",
+    "Database Systems",
+    "Computer Networks",
+    "Software Engineering",
+    "Machine Learning"
+  ],
+  "experiences": [
+    {
+      "company": "Headstarter",
+      "role": "Software Engineering Fellow",
+      "startDate": "2025-06",
+      "endDate": "2025-08",
+      "bullets": [
+        "Built 5 AI-powered projects over 7 weeks using Next.js, OpenAI, and cloud infrastructure",
+        "Developed a web scraping pipeline using Firecrawl API with Redis caching, achieving 87% cache hit rate",
+        "Implemented observability stack with Prometheus and Grafana dashboards tracking P50/P95/P99 latency",
+        "Load tested APIs with k6 handling 25+ requests/second at P95 latency under 500ms"
+      ]
+    },
+    {
+      "company": "University IT Department",
+      "role": "Student Developer",
+      "startDate": "2024-09",
+      "endDate": "2025-05",
+      "bullets": [
+        "Maintained internal tools serving 500+ faculty members using React and Node.js",
+        "Migrated legacy jQuery dashboard to React, reducing page load time by 40%",
+        "Wrote integration tests covering 85% of API endpoints using Jest"
+      ]
+    }
+  ],
+  "projects": [
+    {
+      "name": "Agent Workflow Builder",
+      "timeframe": "2025",
+      "techStack": ["Next.js", "React Flow", "OpenAI", "Firecrawl", "Redis", "Prometheus"],
+      "bullets": [
+        "Built a visual workflow automation tool using React Flow with drag-and-drop AI agent nodes",
+        "Integrated Firecrawl web scraping and OpenAI chat completions as configurable pipeline steps",
+        "Added Redis caching layer reducing API latency from 400ms to under 5ms for repeated requests",
+        "Deployed full observability stack with Prometheus metrics and Grafana dashboards"
+      ]
+    },
+    {
+      "name": "Real-time Chat App",
+      "timeframe": "2024",
+      "techStack": ["React", "Node.js", "Socket.io", "PostgreSQL", "Docker"],
+      "bullets": [
+        "Developed real-time messaging application supporting 100+ concurrent WebSocket connections",
+        "Implemented message persistence with PostgreSQL and full-text search",
+        "Containerized with Docker Compose for consistent development and deployment"
+      ]
+    }
+  ],
+  "graduationDate": "2026-05",
+  "locations": ["Remote", "New York", "San Francisco"]
+}

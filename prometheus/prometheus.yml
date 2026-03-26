@@ -1,0 +1,63 @@
+# =============================================================================
+# PROMETHEUS CONFIGURATION
+# =============================================================================
+#
+# This configuration file defines how Prometheus collects metrics from
+# the Agent Workflow application.
+#
+# Key settings:
+# - Scrape interval: 15 seconds (default)
+# - Retention: 15 days (set via command line flag)
+# - Job labels: agent-workflow-api, env=dev
+#
+# Security:
+# - Scraping via internal Docker network (app:3000)
+# - Not exposed to public internet
+# =============================================================================
+
+global:
+  # How frequently to scrape targets
+  scrape_interval: 15s
+  
+  # How frequently to evaluate alerting rules
+  evaluation_interval: 15s
+  
+  # Labels to add to all metrics and alerts
+  external_labels:
+    monitor: 'agent-workflow-monitor'
+
+# =============================================================================
+# SCRAPE CONFIGURATIONS
+# =============================================================================
+
+scrape_configs:
+  # -------------------------------------------------------------------------
+  # Agent Workflow API
+  # -------------------------------------------------------------------------
+  - job_name: 'agent-workflow-api'
+    
+    # Metrics endpoint path
+    metrics_path: '/api/prometheus'
+    
+    # Scrape interval (optional - uses global if not set)
+    scrape_interval: 15s
+    
+    # Timeout for scrape requests
+    scrape_timeout: 10s
+    
+    # Static targets (Docker internal network)
+    static_configs:
+      - targets: ['app:3000']
+        labels:
+          env: 'dev'
+          service: 'agent-workflow'
+
+  # -------------------------------------------------------------------------
+  # Prometheus self-monitoring (optional but useful)
+  # -------------------------------------------------------------------------
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          env: 'dev'
+          service: 'prometheus'

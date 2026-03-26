@@ -1,0 +1,42 @@
+# =============================================================================
+# GRAFANA DASHBOARD PROVISIONING
+# =============================================================================
+#
+# This file tells Grafana where to find dashboard JSON files.
+# Dashboards in the specified folder will be automatically imported.
+#
+# Documentation: https://grafana.com/docs/grafana/latest/administration/provisioning/
+# =============================================================================
+
+apiVersion: 1
+
+providers:
+  # -------------------------------------------------------------------------
+  # Agent Workflow Dashboards
+  # -------------------------------------------------------------------------
+  - name: 'Agent Workflow'
+    
+    # Organization ID
+    orgId: 1
+    
+    # Folder to store dashboards in (empty = General folder)
+    folder: ''
+    
+    # Folder UID (optional)
+    folderUid: ''
+    
+    # Provider type (file = read from disk)
+    type: file
+    
+    # Disable deletion of imported dashboards
+    disableDeletion: false
+    
+    # Update dashboards on Grafana restart
+    updateIntervalSeconds: 30
+    
+    # Allow users to edit provisioned dashboards
+    allowUiUpdates: true
+    
+    options:
+      # Path to dashboard JSON files (relative to Grafana container)
+      path: /var/lib/grafana/dashboards

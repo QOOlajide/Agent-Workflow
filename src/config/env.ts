@@ -108,6 +108,21 @@ const envSchema = z.object({
    */
   OPENAI_API_KEY: z.string().startsWith("sk-", "API key must start with 'sk-'"),
   
+  /**
+   * REDIS_URL - Redis connection URL
+   * 
+   * WHAT: Connection string for Redis cache
+   * WHY: Required for caching API responses to improve latency
+   * HOW: Set in .env.local file or defaults to localhost
+   * 
+   * FORMAT: redis://host:port
+   * EXAMPLES:
+   *   - Local: "redis://localhost:6379"
+   *   - Docker: "redis://redis:6379"
+   * SOURCE: .env.local file or docker-compose environment
+   */
+  REDIS_URL: z.string().default("redis://localhost:6379"),
+  
   // ADD NEW ENVIRONMENT VARIABLES HERE:
   // Example:
   // DATABASE_URL: z.string().url("Must be a valid database URL"),
@@ -166,6 +181,11 @@ const validateEnv = () => {
       // EXAMPLE: "sk-abc123xyz..."
       // SECURITY: Server-side only (never exposed to browser)
       OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+      
+      // WHAT: Redis connection URL for caching
+      // SOURCE: .env.local file or docker-compose
+      // EXAMPLE: "redis://localhost:6379"
+      REDIS_URL: process.env.REDIS_URL,
     };
     
     // ============================================================

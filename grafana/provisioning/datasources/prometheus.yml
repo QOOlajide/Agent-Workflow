@@ -1,0 +1,51 @@
+# =============================================================================
+# GRAFANA DATASOURCE PROVISIONING
+# =============================================================================
+#
+# This file automatically configures Prometheus as a data source in Grafana.
+# No manual configuration required!
+#
+# Documentation: https://grafana.com/docs/grafana/latest/administration/provisioning/
+# =============================================================================
+
+apiVersion: 1
+
+datasources:
+  # -------------------------------------------------------------------------
+  # Prometheus Data Source
+  # -------------------------------------------------------------------------
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    
+    # Internal Docker network URL
+    url: http://prometheus:9090
+    
+    # Set as default data source
+    isDefault: true
+    
+    # Enable in org 1
+    orgId: 1
+    
+    # Unique identifier
+    uid: prometheus
+    
+    # JSON data for additional configuration
+    jsonData:
+      # HTTP method for queries
+      httpMethod: POST
+      
+      # Manage alerts in Grafana
+      manageAlerts: true
+      
+      # Prometheus type (Prometheus, Cortex, Mimir, Thanos)
+      prometheusType: Prometheus
+      
+      # Prometheus version (for feature compatibility)
+      prometheusVersion: 2.47.0
+      
+      # Time interval for "$__interval" variable
+      timeInterval: 15s
+    
+    # Make this data source editable in UI (for development)
+    editable: true
