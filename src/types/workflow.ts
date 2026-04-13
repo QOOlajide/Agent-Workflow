@@ -1,6 +1,20 @@
 export type JobIngestionInput = {
   url?: string;
   text?: string;
+  /** When ingesting from GitHub README + apply link */
+  company?: string;
+  title?: string;
+  location?: string;
+};
+
+export type GitHubInternshipRow = {
+  id: string;
+  company: string;
+  companyUrl?: string;
+  role: string;
+  location: string;
+  applyUrl?: string;
+  age: string;
 };
 
 export type JobIngestionOutput = {

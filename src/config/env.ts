@@ -122,7 +122,15 @@ const envSchema = z.object({
    * SOURCE: .env.local file or docker-compose environment
    */
   REDIS_URL: z.string().default("redis://localhost:6379"),
-  
+
+  /** Optional — raises GitHub API rate limits for README fetch */
+  GITHUB_TOKEN: z.string().optional(),
+
+  GITHUB_INTERNSHIPS_OWNER: z.string().default("SimplifyJobs"),
+  GITHUB_INTERNSHIPS_REPO: z.string().default("Summer2026-Internships"),
+  GITHUB_INTERNSHIPS_PATH: z.string().default("README.md"),
+  GITHUB_INTERNSHIPS_REF: z.string().default("dev"),
+
   // ADD NEW ENVIRONMENT VARIABLES HERE:
   // Example:
   // DATABASE_URL: z.string().url("Must be a valid database URL"),
@@ -186,6 +194,12 @@ const validateEnv = () => {
       // SOURCE: .env.local file or docker-compose
       // EXAMPLE: "redis://localhost:6379"
       REDIS_URL: process.env.REDIS_URL,
+
+      GITHUB_TOKEN: process.env.GITHUB_TOKEN || undefined,
+      GITHUB_INTERNSHIPS_OWNER: process.env.GITHUB_INTERNSHIPS_OWNER,
+      GITHUB_INTERNSHIPS_REPO: process.env.GITHUB_INTERNSHIPS_REPO,
+      GITHUB_INTERNSHIPS_PATH: process.env.GITHUB_INTERNSHIPS_PATH,
+      GITHUB_INTERNSHIPS_REF: process.env.GITHUB_INTERNSHIPS_REF,
     };
     
     // ============================================================

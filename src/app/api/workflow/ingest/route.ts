@@ -19,7 +19,10 @@ export async function POST(request: Request) {
     let rawText: string;
     let source: string;
 
-    if (body.url) {
+    if (body.text?.trim()) {
+      rawText = body.text.trim();
+      source = body.url ? "github-readme" : "manual";
+    } else if (body.url) {
       try {
         new URL(body.url);
       } catch {
@@ -35,8 +38,10 @@ export async function POST(request: Request) {
       rawText = (result as { markdown?: string }).markdown || "";
       source = "firecrawl";
     } else {
-      rawText = body.text!;
-      source = "manual";
+      return NextResponse.json(
+        { success: false, error: "Provide either a URL or pasted text" },
+        { status: 400 }
+      );
     }
 
     if (!rawText.trim()) {
@@ -50,6 +55,9 @@ export async function POST(request: Request) {
       url: body.url,
       rawText,
       source,
+      company: body.company,
+      title: body.title,
+      location: body.location,
     };
 
     return NextResponse.json({ success: true, data: output });

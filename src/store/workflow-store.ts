@@ -36,7 +36,13 @@ interface WorkflowStore {
   tailoredProfile: TailoredProfile | null;
   logRow: ApplicationLogRow | null;
 
-  runPipeline: (input: { url?: string; text?: string }) => Promise<void>;
+  runPipeline: (input: {
+    url?: string;
+    text?: string;
+    company?: string;
+    title?: string;
+    location?: string;
+  }) => Promise<void>;
   submitReview: (approvedChanges: SectionChange[]) => void;
   logApplication: () => Promise<void>;
   reset: () => void;
