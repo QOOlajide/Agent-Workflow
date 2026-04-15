@@ -37,13 +37,13 @@ function ProfileLoaderNodeComponent() {
             )}
           </div>
           <h3 className="font-semibold text-sm text-foreground flex-1">
-            Profile Loader
+            Your profile
           </h3>
           <div className={`w-2.5 h-2.5 rounded-full ${STATUS_COLORS[status]}`} />
         </div>
 
         {status === "running" && (
-          <p className="text-xs text-muted-foreground">Loading profile.json...</p>
+          <p className="text-xs text-muted-foreground">Loading your saved profile…</p>
         )}
 
         {profile && status === "success" && (
@@ -58,8 +58,10 @@ function ProfileLoaderNodeComponent() {
         )}
 
         {status === "idle" && (
-          <p className="text-xs text-muted-foreground">
-            Reads data/profile/profile.json
+          <p className="text-xs text-muted-foreground leading-snug">
+            Uses the profile from your account. In development this reads{" "}
+            <code className="text-[10px] bg-muted px-1 rounded">data/profile/profile.json</code>
+            ; at sign-up you&apos;ll add a resume once so this step never blocks the flow.
           </p>
         )}
       </div>

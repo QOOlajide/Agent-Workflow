@@ -95,20 +95,9 @@ const geistMono = Geist_Mono({
  * APPLIES TO: All pages (unless overridden by page-specific metadata)
  */
 export const metadata: Metadata = {
-  // WHAT: Page title shown in browser tab
-  // WHY: Tells users and search engines what this app does
-  // HOW: Appears in browser tab, bookmarks, and search results
-  // EXAMPLE: "Agent Workflow - Firecrawl Integration | My Site"
-  title: "Agent Workflow - Firecrawl Integration",
-  
-  // WHAT: Page description for search engines and social sharing
-  // WHY: 
-  //   - SEO: Search engines show this in search results
-  //   - Social: Used when sharing on Twitter, Facebook, etc.
-  //   - Accessibility: Screen readers can read description
-  // HOW: Injected into <meta name="description"> tag
-  // LENGTH: Ideally 150-160 characters for best SEO
-  description: "React Flow with Firecrawl API integration for web scraping",
+  title: "Agent Workflow",
+  description:
+    "Job application workflow: pick a role, analyze fit, tailor materials, and log next steps.",
   
   // FUTURE ENHANCEMENTS:
   // openGraph: { // For social media sharing

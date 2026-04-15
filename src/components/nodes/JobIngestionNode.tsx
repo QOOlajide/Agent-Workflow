@@ -14,8 +14,12 @@ import {
   Search,
 } from "lucide-react";
 import { useWorkflowStore } from "@/store/workflow-store";
-import type { GitHubInternshipRow, NodeStatus } from "@/types/workflow";
+import type { ActiveJobRow, GitHubInternshipRow, NodeStatus } from "@/types/workflow";
+import type { UiJob } from "@/types/ui-job";
 import { internshipRowToJdText } from "@/lib/github-internships-text";
+import { githubInternshipToUiJob } from "@/lib/adapters/github-internship-to-ui-job";
+import { activeJobToUiJob } from "@/lib/adapters/active-job-to-ui-job";
+import { activeJobToJdText } from "@/lib/active-jobs-text";
 
 const STATUS_COLORS: Record<NodeStatus, string> = {
   idle: "bg-muted-foreground/40",
@@ -35,7 +39,9 @@ async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
 }
 
 function JobIngestionNodeComponent() {
-  const [jobs, setJobs] = useState<GitHubInternshipRow[] | null>(null);
+  const [githubJobs, setGithubJobs] = useState<GitHubInternshipRow[] | null>(null);
+  const [activeJobs, setActiveJobs] = useState<ActiveJobRow[] | null>(null);
+  const [sourceMode, setSourceMode] = useState<"github" | "active">("github");
   const [loadError, setLoadError] = useState<string | null>(null);
   const [loadingJobs, setLoadingJobs] = useState(false);
   const [filter, setFilter] = useState("");
@@ -51,35 +57,55 @@ function JobIngestionNodeComponent() {
 
   const isRunning = workflowStatus === "running";
 
-  const filteredJobs = useMemo(() => {
-    if (!jobs?.length) return [];
+  const uiJobs = useMemo<UiJob[] | null>(() => {
+    if (sourceMode === "github") {
+      return githubJobs?.length ? githubJobs.map(githubInternshipToUiJob) : null;
+    }
+    return activeJobs?.length ? activeJobs.map(activeJobToUiJob) : null;
+  }, [sourceMode, githubJobs, activeJobs]);
+
+  const filteredUiJobs = useMemo(() => {
+    if (!uiJobs?.length) return [];
     const q = filter.trim().toLowerCase();
-    if (!q) return jobs;
-    return jobs.filter(
+    if (!q) return uiJobs;
+    return uiJobs.filter(
       (j) =>
         j.company.toLowerCase().includes(q) ||
-        j.role.toLowerCase().includes(q) ||
+        j.title.toLowerCase().includes(q) ||
         j.location.toLowerCase().includes(q)
     );
-  }, [jobs, filter]);
+  }, [uiJobs, filter]);
 
-  const selected = useMemo(
-    () => jobs?.find((j) => j.id === selectedId) ?? null,
-    [jobs, selectedId]
+  const selectedGithub = useMemo(
+    () => githubJobs?.find((j) => j.id === selectedId) ?? null,
+    [githubJobs, selectedId]
   );
+  const selectedActive = useMemo(() => {
+    if (!activeJobs || !selectedId) return null;
+    const rawId = selectedId.replace(/^active-/, "");
+    return activeJobs.find((j) => j.id === rawId) ?? null;
+  }, [activeJobs, selectedId]);
 
   const loadListings = async () => {
     setLoadingJobs(true);
     setLoadError(null);
     try {
-      const data = await fetchJson<{ jobs: GitHubInternshipRow[] }>(
-        "/api/workflow/github-jobs"
-      );
-      setJobs(data.jobs);
+      if (sourceMode === "github") {
+        const data = await fetchJson<{ jobs: GitHubInternshipRow[] }>(
+          "/api/workflow/github-jobs"
+        );
+        setGithubJobs(data.jobs);
+      } else {
+        const data = await fetchJson<{ jobs: ActiveJobRow[] }>(
+          "/api/workflow/active-jobs"
+        );
+        setActiveJobs(data.jobs);
+      }
       setSelectedId(null);
     } catch (e) {
       setLoadError(e instanceof Error ? e.message : "Failed to load listings");
-      setJobs(null);
+      if (sourceMode === "github") setGithubJobs(null);
+      else setActiveJobs(null);
     } finally {
       setLoadingJobs(false);
     }
@@ -91,19 +117,31 @@ function JobIngestionNodeComponent() {
       runPipeline({ text: pasteText.trim() });
       return;
     }
-    if (!selected) return;
+    if (sourceMode === "github") {
+      if (!selectedGithub) return;
+      runPipeline({
+        text: internshipRowToJdText(selectedGithub),
+        url: selectedGithub.applyUrl,
+        company: selectedGithub.company,
+        title: selectedGithub.role,
+        location: selectedGithub.location,
+      });
+      return;
+    }
+
+    if (!selectedActive) return;
     runPipeline({
-      text: internshipRowToJdText(selected),
-      url: selected.applyUrl,
-      company: selected.company,
-      title: selected.role,
-      location: selected.location,
+      text: activeJobToJdText(selectedActive),
+      url: selectedActive.url || undefined,
+      company: selectedActive.organization || undefined,
+      title: selectedActive.title,
+      location: selectedActive.locations_derived?.[0] || undefined,
     });
   };
 
   const canRun = usePaste
     ? !!pasteText.trim()
-    : !!selected && !loadingJobs;
+    : !!selectedId && !loadingJobs;
 
   return (
     <Card className="w-[420px] border-2 shadow-lg bg-gradient-to-br from-card via-card to-card/50">
@@ -113,25 +151,52 @@ function JobIngestionNodeComponent() {
             <Inbox className="h-4 w-4 text-white" />
           </div>
           <h3 className="font-semibold text-sm text-foreground flex-1">
-            Job source (GitHub)
+            Pick a job
           </h3>
           <div className={`w-2.5 h-2.5 rounded-full ${STATUS_COLORS[status]}`} />
         </div>
 
         <p className="text-[11px] text-muted-foreground leading-snug">
-          Listings from{" "}
-          <span className="font-medium text-foreground">
-            SimplifyJobs/Summer2026-Internships
-          </span>{" "}
-          via the GitHub API. Pick a row, then run the pipeline.
+          Pick a source, load jobs, select one role, then run the pipeline.
+          Freshness label is source-aware.
         </p>
 
         <div className="flex gap-1 nodrag">
           <Button
             size="sm"
+            variant={sourceMode === "github" && !usePaste ? "default" : "outline"}
+            className="h-7 text-xs"
+            onClick={() => {
+              setUsePaste(false);
+              setSourceMode("github");
+              setSelectedId(null);
+              setLoadError(null);
+            }}
+            type="button"
+          >
+            GitHub
+          </Button>
+          <Button
+            size="sm"
+            variant={sourceMode === "active" && !usePaste ? "default" : "outline"}
+            className="h-7 text-xs"
+            onClick={() => {
+              setUsePaste(false);
+              setSourceMode("active");
+              setSelectedId(null);
+              setLoadError(null);
+            }}
+            type="button"
+          >
+            Active Jobs DB
+          </Button>
+          <Button
+            size="sm"
             variant={!usePaste ? "default" : "outline"}
             className="h-7 text-xs flex-1"
-            onClick={() => setUsePaste(false)}
+            onClick={() => {
+              setUsePaste(false);
+            }}
             type="button"
           >
             Listings
@@ -174,9 +239,9 @@ function JobIngestionNodeComponent() {
                 )}
                 Load listings
               </Button>
-              {jobs && (
+              {uiJobs && (
                 <span className="text-[11px] text-muted-foreground self-center">
-                  {jobs.length.toLocaleString()} roles
+                  {uiJobs.length.toLocaleString()} roles
                 </span>
               )}
             </div>
@@ -185,7 +250,7 @@ function JobIngestionNodeComponent() {
               <p className="text-[11px] text-destructive">{loadError}</p>
             )}
 
-            {jobs && jobs.length > 0 && (
+            {uiJobs && uiJobs.length > 0 && (
               <>
                 <div className="relative nodrag">
                   <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
@@ -199,12 +264,12 @@ function JobIngestionNodeComponent() {
                 </div>
 
                 <div className="nodrag nowheel max-h-[200px] overflow-y-auto rounded-md border border-border/60 bg-muted/20">
-                  {filteredJobs.length === 0 ? (
+                  {filteredUiJobs.length === 0 ? (
                     <p className="text-[11px] text-muted-foreground p-2">
                       No matches.
                     </p>
                   ) : (
-                    filteredJobs.slice(0, 200).map((j) => (
+                    filteredUiJobs.slice(0, 200).map((j) => (
                       <button
                         key={j.id}
                         type="button"
@@ -217,13 +282,15 @@ function JobIngestionNodeComponent() {
                           {j.company}
                         </div>
                         <div className="text-muted-foreground truncate">
-                          {j.role} · {j.location}
-                          {j.age ? ` · ${j.age}` : ""}
+                          {j.title} · {j.location}
+                        </div>
+                        <div className="text-[10px] text-muted-foreground/90 mt-0.5 line-clamp-2">
+                          {j.freshness.headline}
                         </div>
                       </button>
                     ))
                   )}
-                  {filteredJobs.length > 200 && (
+                  {filteredUiJobs.length > 200 && (
                     <p className="text-[10px] text-muted-foreground p-2 border-t">
                       Showing first 200 matches — refine the filter.
                     </p>

@@ -131,6 +131,10 @@ const envSchema = z.object({
   GITHUB_INTERNSHIPS_PATH: z.string().default("README.md"),
   GITHUB_INTERNSHIPS_REF: z.string().default("dev"),
 
+  RAPIDAPI_KEY: z.string().optional(),
+  ACTIVE_JOBS_DB_HOST: z.string().default("active-jobs-db.p.rapidapi.com"),
+  ACTIVE_JOBS_DB_BASE_URL: z.string().default("https://active-jobs-db.p.rapidapi.com"),
+
   // ADD NEW ENVIRONMENT VARIABLES HERE:
   // Example:
   // DATABASE_URL: z.string().url("Must be a valid database URL"),
@@ -200,6 +204,10 @@ const validateEnv = () => {
       GITHUB_INTERNSHIPS_REPO: process.env.GITHUB_INTERNSHIPS_REPO,
       GITHUB_INTERNSHIPS_PATH: process.env.GITHUB_INTERNSHIPS_PATH,
       GITHUB_INTERNSHIPS_REF: process.env.GITHUB_INTERNSHIPS_REF,
+
+      RAPIDAPI_KEY: process.env.RAPIDAPI_KEY || undefined,
+      ACTIVE_JOBS_DB_HOST: process.env.ACTIVE_JOBS_DB_HOST,
+      ACTIVE_JOBS_DB_BASE_URL: process.env.ACTIVE_JOBS_DB_BASE_URL,
     };
     
     // ============================================================

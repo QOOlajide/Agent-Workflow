@@ -17,6 +17,22 @@ export type GitHubInternshipRow = {
   age: string;
 };
 
+export type ActiveJobRow = {
+  id: string;
+  date_posted?: string | null;
+  date_created?: string | null;
+  title: string;
+  organization?: string | null;
+  url?: string | null;
+  source?: string | null;
+  source_domain?: string | null;
+  locations_derived?: string[] | null;
+  countries_derived?: string[] | null;
+  location_type?: string | null;
+  remote_derived?: boolean | null;
+  description_text?: string | null;
+};
+
 export type JobIngestionOutput = {
   url?: string;
   rawText: string;

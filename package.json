@@ -13,7 +13,10 @@
     "metrics": "echo 'Start the dev server and visit http://localhost:3000/api/metrics'",
     "redis": "docker-compose up redis -d",
     "load-test": "k6 run tests/load/k6-load-test.js",
-    "stress-test": "k6 run tests/load/k6-stress-test.js"
+    "stress-test": "k6 run tests/load/k6-stress-test.js",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
   },
   "dependencies": {
     "@hookform/resolvers": "^4.1.0",
@@ -45,11 +48,13 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@types/jest": "^29.5.14",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "15.5.7",
+    "jest": "^29.7.0",
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
     "typescript": "^5"

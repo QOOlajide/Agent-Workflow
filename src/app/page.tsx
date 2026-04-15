@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useMemo } from "react";
+import Link from "next/link";
 import {
   ReactFlow,
   applyNodeChanges,
@@ -114,6 +115,23 @@ export default function Home() {
 
   return (
     <div style={{ width: "100vw", height: "100vh" }} className="relative">
+      <header className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between gap-3 px-4 py-2.5 border-b border-border/60 bg-background/90 backdrop-blur-sm pointer-events-auto">
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-foreground truncate">
+            Application workflow
+          </p>
+          <p className="text-[11px] text-muted-foreground truncate">
+            Pick a job → analyze → tailor → review
+          </p>
+        </div>
+        <Link
+          href="/settings"
+          className="text-xs font-medium text-muted-foreground hover:text-foreground shrink-0 underline-offset-4 hover:underline"
+        >
+          Profile & settings
+        </Link>
+      </header>
+
       <ReactFlow
         nodes={nodes}
         edges={edges}
