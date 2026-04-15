@@ -1,6 +1,6 @@
 # Agent Workflow Builder
 
-A visual, AI-powered job application pipeline built with Next.js and React Flow. Paste a job posting URL, and the system scrapes it, analyzes the JD, scores your fit, generates resume tailoring suggestions, lets you review each change, and logs the application — all as a drag-and-drop node workflow.
+A visual, AI-powered job application pipeline built with Next.js and React Flow. The first node pulls recent roles from curated APIs (GitHub + Active Jobs DB) or accepts pasted JD text, then the system analyzes fit, generates tailoring suggestions, lets you review each change, and logs the application.
 
 ## What It Does
 
@@ -10,7 +10,7 @@ The pipeline has 7 nodes that execute in order:
 
 | Node | What It Does |
 |---|---|
-| **Job Ingestion** | Accepts a job URL (scraped via Firecrawl) or pasted text |
+| **Job Ingestion** | Loads jobs from GitHub/Active Jobs DB, or accepts pasted text |
 | **JD Analysis** | Extracts structured fields (title, level, skills, responsibilities) via OpenAI |
 | **Profile Loader** | Reads your master resume from `data/profile/profile.json` |
 | **Fit Scoring** | Rule-based scoring: skills match, location, level, topics (0-100) |
@@ -24,7 +24,8 @@ The pipeline has 7 nodes that execute in order:
 - **Workflow Canvas:** React Flow (`@xyflow/react`) for visual node editor
 - **State:** Zustand for pipeline state + linear executor
 - **AI:** OpenAI Chat Completions (gpt-5.3 with gpt-5.2 fallback, JSON mode) for JD analysis & tailoring
-- **Scraping:** Firecrawl API for job posting extraction
+- **Job Sources:** GitHub API + Active Jobs DB (RapidAPI)
+- **Fallback Ingestion:** Paste full JD text directly (no scrape required when description is provided by source)
 - **Caching:** Redis (ioredis) with graceful fallback
 - **Observability:** Prometheus (`prom-client`) + Grafana dashboards
 - **Load Testing:** k6 (load + stress test scripts)
@@ -75,12 +76,22 @@ GOOGLE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n..."
 ## How to Use
 
 1. Open `http://localhost:3000` — you'll see the 7-node pipeline on a canvas
-2. In the **Job Ingestion** node, paste a job posting URL or the JD text
-3. Click **Run Pipeline** — watch each node light up as it processes
-4. When the **Review** node activates, approve/edit/reject each suggestion
-5. Click **Finalize Review**
-6. Click **Log Application** in the bottom node
-7. Check `data/applications.json` for your logged applications
+2. In the **Job Ingestion** node, choose a source (`GitHub` or `Active Jobs DB`) and load listings
+3. Select a role, or switch to paste mode and provide JD text manually
+4. Click **Run Pipeline** — watch each node light up as it processes
+5. When the **Review** node activates, approve/edit/reject each suggestion
+6. Click **Finalize Review**
+7. Click **Log Application** in the bottom node
+8. Check `data/applications.json` for your logged applications
+
+## Current MVP Product Decisions
+
+- **Cache-first source reads:** prefer cached source responses before re-hitting external APIs.
+- **API-first ingestion:** use provider description fields directly when available; avoid unnecessary scraping.
+- **Freshness transparency:** show relative freshness only when timestamp semantics are trustworthy; otherwise show absolute/unverified labels.
+- **Cost guardrails:** keep source filters narrow and cap repeated calls to the same source.
+- **Planned usage limit:** 5 pipeline runs per user per day.
+- **Near-term work:** revisit timestamp/timezone handling, add onboarding resume upload + OCR, and add OAuth account creation.
 
 ## Project Structure
 
@@ -90,7 +101,9 @@ src/
 │   ├── page.tsx                          # React Flow canvas with 7 workflow nodes
 │   └── api/
 │       ├── workflow/
-│       │   ├── ingest/route.ts           # Firecrawl scraping or text passthrough
+│       │   ├── ingest/route.ts           # Ingestion text passthrough / fallback
+│       │   ├── github-jobs/route.ts      # GitHub internships source
+│       │   ├── active-jobs/route.ts      # Active Jobs DB source (RapidAPI)
 │       │   ├── analyze/route.ts          # OpenAI structured JD analysis
 │       │   ├── profile/route.ts          # Read profile.json from disk
 │       │   ├── score/route.ts            # Rule-based fit scoring
@@ -130,7 +143,9 @@ data/
 
 - [ ] Workflow execution engine for generic graph traversal (beyond linear)
 - [ ] Persistent storage (database) for saving workflows and past results
-- [ ] Authentication and rate limiting on API routes
+- [ ] OAuth authentication + account creation
+- [ ] Per-user rate limiting (5 pipeline runs/day)
+- [ ] Resume onboarding upload + OCR parsing (outside the run workflow)
 - [ ] Streaming OpenAI responses
 - [ ] New node types: Resume Match scoring, Cover Letter generator, Job Board aggregator
 - [ ] Batch/scheduled workflows (daily scrape + notify)
