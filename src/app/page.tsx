@@ -13,6 +13,7 @@ import {
   Background,
   MiniMap,
 } from "@xyflow/react";
+
 import "@xyflow/react/dist/style.css";
 
 import { JobIngestionNode } from "@/components/nodes/JobIngestionNode";
@@ -23,53 +24,74 @@ import { TailoringSuggestionNode } from "@/components/nodes/TailoringSuggestionN
 import { ReviewNode } from "@/components/nodes/ReviewNode";
 import { ApplicationLoggerNode } from "@/components/nodes/ApplicationLoggerNode";
 import { useWorkflowStore } from "@/store/workflow-store";
+import {
+  NODE_FALLBACK_HEIGHT,
+  NODE_GAP,
+  NODE_WIDTH,
+  Y_START,
+} from "@/components/nodes/node-card";
 
 const X_CENTER = 300;
-const Y_GAP = 220;
+
+const PIPELINE_ORDER = [
+  "ingest",
+  "analyze",
+  "profile",
+  "score",
+  "suggest",
+  "review",
+  "log",
+] as const;
+
+function nodeHeight(node: Node): number {
+  return node.measured?.height ?? node.height ?? NODE_FALLBACK_HEIGHT;
+}
+
+function stackNodes(nodes: Node[]): Node[] {
+  const byId = new Map(nodes.map((node) => [node.id, node]));
+  const nextY = new Map<string, number>();
+  let y = Y_START;
+
+  for (const id of PIPELINE_ORDER) {
+    const node = byId.get(id);
+    if (!node) continue;
+    nextY.set(id, y);
+    y += nodeHeight(node) + NODE_GAP;
+  }
+
+  return nodes.map((node) => {
+    const stackedY = nextY.get(node.id);
+    if (stackedY === undefined || node.position.y === stackedY) return node;
+    return { ...node, position: { ...node.position, y: stackedY } };
+  });
+}
+
+function sizedNode(
+  id: (typeof PIPELINE_ORDER)[number],
+  type: string,
+  index: number
+): Node {
+  return {
+    id,
+    type,
+    position: {
+      x: X_CENTER,
+      y: Y_START + index * (NODE_FALLBACK_HEIGHT + NODE_GAP),
+    },
+    style: { width: NODE_WIDTH },
+    width: NODE_WIDTH,
+    data: {},
+  };
+}
 
 const initialNodes: Node[] = [
-  {
-    id: "ingest",
-    type: "jobIngestion",
-    position: { x: X_CENTER, y: 0 },
-    data: {},
-  },
-  {
-    id: "analyze",
-    type: "jdAnalysis",
-    position: { x: X_CENTER, y: Y_GAP },
-    data: {},
-  },
-  {
-    id: "profile",
-    type: "profileLoader",
-    position: { x: X_CENTER, y: Y_GAP * 2 },
-    data: {},
-  },
-  {
-    id: "score",
-    type: "fitScoring",
-    position: { x: X_CENTER, y: Y_GAP * 3 },
-    data: {},
-  },
-  {
-    id: "suggest",
-    type: "tailoringSuggestion",
-    position: { x: X_CENTER, y: Y_GAP * 4 },
-    data: {},
-  },
-  {
-    id: "review",
-    type: "review",
-    position: { x: X_CENTER - 50, y: Y_GAP * 5 },
-    data: {},
-  },
-  {
-    id: "log",
-    type: "applicationLogger",
-    position: { x: X_CENTER, y: Y_GAP * 6 + 80 },
-    data: {},
-  },
+  sizedNode("ingest", "jobIngestion", 0),
+  sizedNode("analyze", "jdAnalysis", 1),
+  sizedNode("profile", "profileLoader", 2),
+  sizedNode("score", "fitScoring", 3),
+  sizedNode("suggest", "tailoringSuggestion", 4),
+  sizedNode("review", "review", 5),
+  sizedNode("log", "applicationLogger", 6),
 ];
 
 const initialEdges: Edge[] = [
@@ -99,12 +121,13 @@ export default function Home() {
     []
   );
 
-  const onNodesChange = useCallback(
-    (changes: NodeChange[]) => {
-      setNodes((nds) => applyNodeChanges(changes, nds));
-    },
-    []
-  );
+  const onNodesChange = useCallback((changes: NodeChange[]) => {
+    setNodes((nds) => {
+      const next = applyNodeChanges(changes, nds);
+      if (!changes.some((change) => change.type === "dimensions")) return next;
+      return stackNodes(next);
+    });
+  }, []);
 
   const onEdgesChange = useCallback(
     (changes: EdgeChange[]) => {

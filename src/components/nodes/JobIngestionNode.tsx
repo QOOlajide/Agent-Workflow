@@ -13,6 +13,7 @@ import {
   RefreshCw,
   Search,
 } from "lucide-react";
+import { NODE_CARD_BODY_CLASS, NODE_CARD_CLASS } from "@/components/nodes/node-card";
 import { useWorkflowStore } from "@/store/workflow-store";
 import type { ActiveJobRow, GitHubInternshipRow, NodeStatus } from "@/types/workflow";
 import type { UiJob } from "@/types/ui-job";
@@ -144,8 +145,8 @@ function JobIngestionNodeComponent() {
     : !!selectedId && !loadingJobs;
 
   return (
-    <Card className="w-[420px] border-2 shadow-lg bg-gradient-to-br from-card via-card to-card/50">
-      <div className="p-4 space-y-3">
+    <Card className={NODE_CARD_CLASS}>
+      <div className={NODE_CARD_BODY_CLASS}>
         <div className="flex items-center gap-2.5 pb-2 border-b border-border/50">
           <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-orange-500 to-orange-600 shadow-sm">
             <Inbox className="h-4 w-4 text-white" />
@@ -218,8 +219,8 @@ function JobIngestionNodeComponent() {
             value={pasteText}
             onChange={(e) => setPasteText(e.target.value)}
             disabled={isRunning}
-            rows={5}
-            className="nodrag nowheel w-full rounded-md border border-input bg-transparent px-3 py-2 text-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-y"
+            rows={4}
+            className="nodrag nowheel w-full rounded-md border border-input bg-transparent px-3 py-2 text-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none"
           />
         ) : (
           <>
@@ -263,7 +264,7 @@ function JobIngestionNodeComponent() {
                   />
                 </div>
 
-                <div className="nodrag nowheel max-h-[200px] overflow-y-auto rounded-md border border-border/60 bg-muted/20">
+                <div className="nodrag nowheel max-h-[180px] overflow-y-auto rounded-md border border-border/60 bg-muted/20">
                   {filteredUiJobs.length === 0 ? (
                     <p className="text-[11px] text-muted-foreground p-2">
                       No matches.

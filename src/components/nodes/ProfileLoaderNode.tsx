@@ -4,6 +4,7 @@ import { memo } from "react";
 import { Handle, Position } from "@xyflow/react";
 import { Card } from "@/components/ui/card";
 import { User, Loader2 } from "lucide-react";
+import { NODE_CARD_BODY_CLASS, NODE_CARD_CLASS } from "@/components/nodes/node-card";
 import { useWorkflowStore } from "@/store/workflow-store";
 import type { NodeStatus } from "@/types/workflow";
 
@@ -19,7 +20,7 @@ function ProfileLoaderNodeComponent() {
   const profile = useWorkflowStore((s) => s.profile);
 
   return (
-    <Card className="w-[380px] border-2 shadow-lg bg-gradient-to-br from-card via-card to-card/50">
+    <Card className={NODE_CARD_CLASS}>
       <Handle
         type="target"
         position={Position.Top}
@@ -27,7 +28,7 @@ function ProfileLoaderNodeComponent() {
         className="!bg-emerald-500 !border-background"
       />
 
-      <div className="p-4 space-y-3">
+      <div className={NODE_CARD_BODY_CLASS}>
         <div className="flex items-center gap-2.5 pb-2 border-b border-border/50">
           <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600 shadow-sm">
             {status === "running" ? (

@@ -5,6 +5,7 @@ import { Handle, Position } from "@xyflow/react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Eye, Check, Pencil, X, Send } from "lucide-react";
+import { NODE_CARD_BODY_CLASS, NODE_CARD_CLASS } from "@/components/nodes/node-card";
 import { useWorkflowStore } from "@/store/workflow-store";
 import type { SectionChange, NodeStatus } from "@/types/workflow";
 
@@ -84,7 +85,7 @@ function ReviewNodeComponent() {
   const isReviewPhase = workflowStatus === "review";
 
   return (
-    <Card className="w-[480px] border-2 shadow-lg bg-gradient-to-br from-card via-card to-card/50">
+    <Card className={NODE_CARD_CLASS}>
       <Handle
         type="target"
         position={Position.Top}
@@ -92,7 +93,7 @@ function ReviewNodeComponent() {
         className="!bg-pink-500 !border-background"
       />
 
-      <div className="p-4 space-y-3">
+      <div className={NODE_CARD_BODY_CLASS}>
         <div className="flex items-center gap-2.5 pb-2 border-b border-border/50">
           <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-pink-500 to-pink-600 shadow-sm">
             <Eye className="h-4 w-4 text-white" />
@@ -121,7 +122,7 @@ function ReviewNodeComponent() {
               </span>
             </div>
 
-            <div className="max-h-[400px] overflow-y-auto space-y-2 pr-1">
+            <div className="max-h-[200px] overflow-y-auto space-y-2 pr-1 nowheel">
               {suggestions.map((change, idx) => (
                 <SuggestionCard
                   key={idx}
